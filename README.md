@@ -1,4 +1,4 @@
-near-otc(NCD L1C2 Group G team project)
+near-riddles(NCD L1C2 Group G team project)
 ==================
 
 This [Vue] app was initialized with [create-near-app]
