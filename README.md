@@ -1,4 +1,4 @@
-near-otc
+near-otc(NCD L1C2 Group G team project)
 ==================
 
 This [Vue] app was initialized with [create-near-app]
