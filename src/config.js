@@ -1,5 +1,5 @@
 const CONTRACT_NAME =
-  process.env.VUE_APP_CONTRACT_NAME || 'dev-1615534169646-8512773'
+  process.env.VUE_APP_CONTRACT_NAME || 'dev-1615557089251-8971892'
 
 function getConfig(env) {
   switch (env) {
