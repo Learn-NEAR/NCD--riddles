@@ -19,6 +19,14 @@ Exploring The Code
    standard Rust tests using [cargo] with a `--nocapture` flag so that you
    can see any debug info you print to the console.
 
+Test The Code
+==================
+
+
+```
+cargo test -- --nocapture
+```
+
 
   [smart contract]: https://docs.near.org/docs/roles/developer/contracts/intro
   [Rust]: https://www.rust-lang.org/

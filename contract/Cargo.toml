@@ -9,6 +9,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 near-sdk = "2.0.0"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+
 
 [profile.release]
 codegen-units = 1

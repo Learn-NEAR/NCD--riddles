@@ -24,40 +24,83 @@ use near_sdk::{
 };
 
 use std::{collections::HashMap, fmt::Display};
+use uuid::Uuid;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+// ----------------------------- category -----------------------------
 #[derive(BorshSerialize, BorshDeserialize, Eq, PartialEq, Debug, Serialize, Deserialize, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub enum RiddleKind {
     History,
+    Kid,
 }
+
 
 impl Display for RiddleKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             &RiddleKind::History => write!(f, "history"),
+            &RiddleKind::Kid => write!(f, "kid"),
         }
     }
 }
 
+// ----------------------------- grade -----------------------------
+#[derive(BorshSerialize, BorshDeserialize, Eq, PartialEq, Debug, Serialize, Deserialize, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub enum RiddleGrade {
+    Easy,
+    Difficult,
+    Hard,
+}
+
+impl Display for RiddleGrade {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            &RiddleGrade::Easy => write!(f, "easy"),
+            &RiddleGrade::Difficult => write!(f, "difficult"),
+            &RiddleGrade::Hard => write!(f, "hard"),
+        }
+    }
+}
+
+// ----------------------------- add_riddle info -----------------------------
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct RiddleInput {
+    riddle: RiddleInfo,
+    grade: RiddleGrade,
+    bonus: Balance,
+}
+
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct RiddleInfo {
     question: String,
     sha256_answer: String,
     kind: RiddleKind,
 }
 
+// ----------------------------- answer_riddle info -----------------------------
+
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct AnswerInfo {
+    id: u128,
+    sha256_answer: String,
+}
+
+
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Riddle {
-    id: u64,
-    difficulty: u64,
+    id: u128,
+    grade: RiddleGrade,
     creator: AccountId,
     bonus: Balance,
-    input: RiddleInput,
+    riddle_info: RiddleInfo,
 }
 
 // Structs in Rust are similar to other languages, and may include impl keyword as shown below
@@ -66,7 +109,7 @@ pub struct Riddle {
 #[derive(Default, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct RiddleGame {
-    riddles: HashMap<u64, Riddle>,
+    riddles: HashMap<u128, Riddle>,
 }
 
 #[near_bindgen]
@@ -80,7 +123,7 @@ impl RiddleGame {
     }
 
     #[payable]
-    pub fn add_riddle(&mut self, input: RiddleInput) {
+    pub fn add_riddle(&mut self, input: &RiddleInput) {
         let creator = env::signer_account_id();
         assert_eq!(
             creator,
@@ -92,54 +135,53 @@ impl RiddleGame {
         env::log(
             format!(
                 "{} just created a new riddle in the domain {} with a bonus at {}",
-                creator, input.kind, bonus
+                creator, input.riddle.kind, bonus
             )
-            .as_bytes(),
+                .as_bytes(),
         );
 
+
+        let uid = Uuid::new_v4().as_u128();
+
         // TODO: check overflow
-        let id = (self.riddles.len() + 1) as u64;
-        let difficulty = 1_u64;
         let riddle = Riddle {
-            id,
-            difficulty,
+            id: uid,
+            grade: input.to_owned().grade,
             creator,
-            input,
-            bonus,
+            bonus: input.to_owned().bonus,
+            riddle_info: input.to_owned().riddle,
         };
 
-        self.riddles.insert(id, riddle);
+        self.riddles.insert(uid, riddle);
         // TODO: check signer's banlance
         Promise::new(env::current_account_id()).transfer(bonus);
     }
 
-    pub fn answer_riddle(&mut self, id: u64, sha256_answer: String) {
+    pub fn answer_riddle(&mut self, answer: AnswerInfo) -> Option<Riddle>{
         let answerer = env::signer_account_id();
         assert_eq!(
             answerer,
             env::predecessor_account_id(),
             "predecessor account id must be the answerer"
         );
-        match self.riddles.get_mut(&id) {
-            Some(riddle) if riddle.input.sha256_answer == sha256_answer => {
+        match self.riddles.get_mut(&answer.id) {
+            Some(riddle) if riddle.riddle_info.sha256_answer == answer.sha256_answer => {
                 let bonus = riddle.bonus;
 
                 env::log(
                     format!(
                         "{} just answered riddle#{} correctly, he won the bonus at {}",
-                        answerer, id, bonus
+                        answerer, answer.id, bonus
                     )
-                    .as_bytes(),
+                        .as_bytes(),
                 );
 
-                self.riddles.remove(&id);
+                self.riddles.remove(&answer.id);
                 Promise::new(answerer).transfer(1000);
             }
-            Some(riddle) => {
-                riddle.difficulty += 1;
-            }
-            None => {}
+            _ => {}
         }
+        self.riddles.get(&answer.id).cloned()
     }
 
     pub fn get_riddles(&self) -> Vec<Riddle> {
@@ -149,7 +191,7 @@ impl RiddleGame {
     pub fn get_riddles_of_kind(&self, kind: &RiddleKind) -> Vec<Riddle> {
         self.riddles
             .values()
-            .filter(|r| &r.input.kind == kind)
+            .filter(|r| &r.riddle_info.kind == kind)
             .cloned()
             .collect()
     }
@@ -167,54 +209,4 @@ impl RiddleGame {
  *
  */
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use near_sdk::MockedBlockchain;
-    use near_sdk::{testing_env, VMContext};
-
-    // mock the context for testing, notice "signer_account_id" that was accessed above from env::
-    fn get_context(input: Vec<u8>, is_view: bool) -> VMContext {
-        VMContext {
-            current_account_id: "alice_near".to_string(),
-            signer_account_id: "bob_near".to_string(),
-            signer_account_pk: vec![0, 1, 2],
-            predecessor_account_id: "carol_near".to_string(),
-            input,
-            block_index: 0,
-            block_timestamp: 0,
-            account_balance: 0,
-            account_locked_balance: 0,
-            storage_usage: 0,
-            attached_deposit: 0,
-            prepaid_gas: 10u64.pow(18),
-            random_seed: vec![0, 1, 2],
-            is_view,
-            output_data_receivers: vec![],
-            epoch_height: 19,
-        }
-    }
-
-    #[test]
-    fn set_then_get_greeting() {
-        let context = get_context(vec![], false);
-        testing_env!(context);
-        let mut contract = RiddleGame::default();
-        contract.set_greeting("howdy".to_string());
-        assert_eq!(
-            "howdy".to_string(),
-            contract.get_greeting("bob_near".to_string())
-        );
-    }
-
-    #[test]
-    fn get_default_greeting() {
-        let context = get_context(vec![], true);
-        testing_env!(context);
-        let contract = RiddleGame::default();
-        // this test did not call set_greeting so should return the default "Hello" greeting
-        assert_eq!(
-            "Hello".to_string(),
-            contract.get_greeting("francis.near".to_string())
-        );
-    }
-}
+mod tests;
