@@ -1,15 +1,14 @@
 <template>
   <main>
-    <h1>Welcome to NEAR!</h1>
+    <h1>Welcome to NEAR RIDDLE GAME!</h1>
     <p>
-      To make use of the NEAR blockchain, you need to sign in. The button
+      To start playing the game, you need to sign in. The button
       below will sign you in using NEAR Wallet.
     </p>
     <p>
-      By default, when your app runs in "development" mode, it connects
-      to a test network ("testnet") wallet. This works just like the main
+      By default, it connects to a test network ("testnet") wallet. This works just like the main
       network ("mainnet") wallet, but the NEAR Tokens on testnet aren't
-      convertible to other currencies - they're just for testing!
+      convertible to other currencies - so you can play without worrying about money!
     </p>
     <p>Go ahead and click the button below to try it out:</p>
     <p style="text-align:center; margin-top:2.5em">
