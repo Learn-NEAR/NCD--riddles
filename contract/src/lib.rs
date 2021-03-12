@@ -35,6 +35,9 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 pub enum RiddleKind {
     History,
     Kid,
+    Science,
+    Math,
+    Other,
 }
 
 
@@ -43,6 +46,9 @@ impl Display for RiddleKind {
         match self {
             &RiddleKind::History => write!(f, "history"),
             &RiddleKind::Kid => write!(f, "kid"),
+            &RiddleKind::Science => write!(f, "Science"),
+            &RiddleKind::Math => write!(f, "Math"),
+            &RiddleKind::Other => write!(f, "Other"),
         }
     }
 }
