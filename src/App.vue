@@ -19,7 +19,7 @@ window.networkId = nearConfig.networkId
 
 export default {
   created() {
-    document.title = "near-otc"
+    document.title = "near-riddles"
   },
   name: "App",
   components: {
