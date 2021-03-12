@@ -15,6 +15,11 @@
         <option v-for="k of kindList" :value="k" :key="k">{{ k }}</option>
       </b-select>
     </b-field>
+    <b-field label="Grade">
+      <b-select expanded placeholder="select the difficulty">
+        <option v-for="g of gradeList" :value="g" :key="g">{{ g }}</option>
+      </b-select>
+    </b-field>
     <b-field label="bonus">
       <b-select expanded placeholder="select the bonus">
         <option v-for="b of bonusList" :value="b" :key="b">{{ b }}</option>
@@ -39,7 +44,9 @@ export default {
       question: null,
       answer: null,
       kind: 'History',
-      kindList: ['History', 'Science', 'Math', 'Other'],
+      kindList: ['History', 'Culture', 'Science', 'Math', 'Other'],
+      grade: 'Easy',
+      gradeList: ['Easy', 'Medium', 'Hard'],
       bonus: 1,
       bonusList: [0.5, 1, 2, 4, 8, 16],
       loader: null,
@@ -67,9 +74,12 @@ export default {
 
         await window.contract.add_riddle({
           input: {
-            question: this.question,
-            sha256_answer: sha256(this.answer),
-            kind: this.kind,
+            riddle: {
+              question: this.question,
+              sha256_answer: sha256(this.answer),
+              kind: this.kind,
+            },
+            grade: this.grade,
           },
         })
       } catch (e) {

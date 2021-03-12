@@ -20,11 +20,11 @@
       </b-table-column>
 
       <b-table-column label="Question" width="20" v-slot="props">
-        {{ props.row.input.question }}
+        {{ props.row.riddle_info.question }}
       </b-table-column>
 
       <b-table-column label="Kind" width="20" v-slot="props">
-        {{ props.row.input.kind }}
+        {{ props.row.riddle_info.kind }}
       </b-table-column>
 
       <b-table-column label="Bonus" width="20" v-slot="props">
@@ -32,7 +32,7 @@
       </b-table-column>
 
       <b-table-column label="Difficulty" width="20" v-slot="props">
-        {{ props.row.difficulty }}
+        {{ props.row.grade }}
       </b-table-column>
     </b-table>
 
@@ -96,8 +96,10 @@ export default {
         })
 
         await window.contract.answer_riddle({
-          id: this.selectedQuestionId,
-          sha256_answer: sha256(this.answer),
+          answer: {
+            id: this.selectedQuestionId,
+            sha256_answer: sha256(this.answer),
+          },
         })
       } catch (e) {
         window.alert(

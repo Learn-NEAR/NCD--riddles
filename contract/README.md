@@ -20,6 +20,15 @@ Exploring The Code
    can see any debug info you print to the console.
 
 
+Test The Code
+==================
+
+
+```
+cargo test -- --nocapture
+```
+
+
   [smart contract]: https://docs.near.org/docs/roles/developer/contracts/intro
   [Rust]: https://www.rust-lang.org/
   [create-near-app]: https://github.com/near/create-near-app
