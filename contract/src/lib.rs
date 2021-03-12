@@ -12,41 +12,146 @@
  */
 
 // To conserve gas, efficient serialization is achieved through Borsh (http://borsh.io/)
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::wee_alloc;
+use near_sdk::{
+    borsh::{self, BorshDeserialize, BorshSerialize},
+    AccountId, Balance,
+};
 use near_sdk::{env, near_bindgen};
-use std::collections::HashMap;
+use near_sdk::{
+    serde::{Deserialize, Serialize},
+    Promise,
+};
+
+use std::{collections::HashMap, fmt::Display};
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+#[derive(BorshSerialize, BorshDeserialize, Eq, PartialEq, Debug, Serialize, Deserialize, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub enum RiddleKind {
+    History,
+}
+
+impl Display for RiddleKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            &RiddleKind::History => write!(f, "history"),
+        }
+    }
+}
+
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct RiddleInput {
+    question: String,
+    sha256_answer: String,
+    kind: RiddleKind,
+}
+
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Riddle {
+    id: u64,
+    difficulty: u64,
+    creator: AccountId,
+    bonus: Balance,
+    input: RiddleInput,
+}
+
 // Structs in Rust are similar to other languages, and may include impl keyword as shown below
 // Note: the names of the structs are not important when calling the smart contract, but the function names are
 #[near_bindgen]
-#[derive(Default, BorshDeserialize, BorshSerialize)]
-pub struct Welcome {
-    records: HashMap<String, String>,
+#[derive(Default, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct RiddleGame {
+    riddles: HashMap<u64, Riddle>,
 }
 
 #[near_bindgen]
-impl Welcome {
-    pub fn set_greeting(&mut self, message: String) {
-        let account_id = env::signer_account_id();
-
-        // Use env::log to record logs permanently to the blockchain!
-        env::log(format!("Saving greeting '{}' for account '{}'", message, account_id,).as_bytes());
-
-        self.records.insert(account_id, message);
+impl RiddleGame {
+    #[init]
+    pub fn new() -> Self {
+        assert!(!env::state_exists(), "The contract is already initialized");
+        Self {
+            riddles: HashMap::new(),
+        }
     }
 
-    // `match` is similar to `switch` in other languages; here we use it to default to "Hello" if
-    // self.records.get(&account_id) is not yet defined.
-    // Learn more: https://doc.rust-lang.org/book/ch06-02-match.html#matching-with-optiont
-    pub fn get_greeting(&self, account_id: String) -> &str {
-        match self.records.get(&account_id) {
-            Some(greeting) => greeting,
-            None => "Hello",
+    #[payable]
+    pub fn add_riddle(&mut self, input: RiddleInput) {
+        let creator = env::signer_account_id();
+        assert_eq!(
+            creator,
+            env::predecessor_account_id(),
+            "predecessor account id must be the signer"
+        );
+
+        let bonus = env::attached_deposit();
+        env::log(
+            format!(
+                "{} just created a new riddle in the domain {} with a bonus at {}",
+                creator, input.kind, bonus
+            )
+            .as_bytes(),
+        );
+
+        // TODO: check overflow
+        let id = (self.riddles.len() + 1) as u64;
+        let difficulty = 1_u64;
+        let riddle = Riddle {
+            id,
+            difficulty,
+            creator,
+            input,
+            bonus,
+        };
+
+        self.riddles.insert(id, riddle);
+        // TODO: check signer's banlance
+        Promise::new(env::current_account_id()).transfer(bonus);
+    }
+
+    pub fn answer_riddle(&mut self, id: u64, sha256_answer: String) {
+        let answerer = env::signer_account_id();
+        assert_eq!(
+            answerer,
+            env::predecessor_account_id(),
+            "predecessor account id must be the answerer"
+        );
+        match self.riddles.get_mut(&id) {
+            Some(riddle) if riddle.input.sha256_answer == sha256_answer => {
+                let bonus = riddle.bonus;
+
+                env::log(
+                    format!(
+                        "{} just answered riddle#{} correctly, he won the bonus at {}",
+                        answerer, id, bonus
+                    )
+                    .as_bytes(),
+                );
+
+                self.riddles.remove(&id);
+                Promise::new(answerer).transfer(1000);
+            }
+            Some(riddle) => {
+                riddle.difficulty += 1;
+            }
+            None => {}
         }
+    }
+
+    pub fn get_riddles(&self) -> Vec<Riddle> {
+        self.riddles.values().cloned().collect()
+    }
+
+    pub fn get_riddles_of_kind(&self, kind: &RiddleKind) -> Vec<Riddle> {
+        self.riddles
+            .values()
+            .filter(|r| &r.input.kind == kind)
+            .cloned()
+            .collect()
     }
 }
 
@@ -93,7 +198,7 @@ mod tests {
     fn set_then_get_greeting() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let mut contract = Welcome::default();
+        let mut contract = RiddleGame::default();
         contract.set_greeting("howdy".to_string());
         assert_eq!(
             "howdy".to_string(),
@@ -105,7 +210,7 @@ mod tests {
     fn get_default_greeting() {
         let context = get_context(vec![], true);
         testing_env!(context);
-        let contract = Welcome::default();
+        let contract = RiddleGame::default();
         // this test did not call set_greeting so should return the default "Hello" greeting
         assert_eq!(
             "Hello".to_string(),

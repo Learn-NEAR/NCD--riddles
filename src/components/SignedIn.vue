@@ -142,7 +142,7 @@ export default {
       this.$refs.fieldset.disabled = true
 
       try {
-        
+
         // make an update call to the smart contract
         await window.contract.set_greeting({
           // pass the new greeting
