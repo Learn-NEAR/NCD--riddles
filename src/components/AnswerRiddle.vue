@@ -1,8 +1,9 @@
 <template>
   <div>
-    <h3>Answer Riddle</h3>
+    <h3>Answer Riddles</h3>
     <br />
 
+    <b-field label="Pick one riddle"></b-field>
     <b-table
       :data="questionList"
       :bordered="isBordered"
@@ -34,9 +35,13 @@
       <b-table-column label="Difficulty" width="20" v-slot="props">
         {{ props.row.grade }}
       </b-table-column>
+
+      <div slot="empty" class="has-text-centered">
+        No Riddle
+      </div>
     </b-table>
 
-    <b-field label="answer">
+    <b-field label="Answer">
       <b-input v-model="answer" placeholder="enter the answer"></b-input>
     </b-field>
 
