@@ -32,12 +32,18 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[serde(crate = "near_sdk::serde")]
 pub enum RiddleKind {
     History,
+    Science,
+    Math,
+    Other,
 }
 
 impl Display for RiddleKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             &RiddleKind::History => write!(f, "history"),
+            &RiddleKind::Science => write!(f, "science"),
+            &RiddleKind::Math => write!(f, "math"),
+            &RiddleKind::Other => write!(f, "other"),
         }
     }
 }

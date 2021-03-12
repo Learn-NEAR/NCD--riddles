@@ -38,8 +38,8 @@ export default {
     return {
       question: null,
       answer: null,
-      kind: 'history',
-      kindList: ['history', 'science', 'math', 'other'],
+      kind: 'History',
+      kindList: ['History', 'Science', 'Math', 'Other'],
       bonus: 1,
       bonusList: [0.5, 1, 2, 4, 8, 16],
     }
@@ -53,12 +53,15 @@ export default {
 
       try {
         await window.contract.add_riddle({
-          question: this.question,
-          sha256_answer: sha256(this.answer),
-          kind: this.kind,
+          input: {
+            question: this.question,
+            sha256_answer: sha256(this.answer),
+            kind: this.kind,
+          },
         })
       } catch (e) {
-        window.alert( 'Something went wrong! ' +
+        window.alert(
+          'Something went wrong! ' +
             'Maybe you need to sign out and back in? ' +
             'Check your browser console for more info.'
         )
