@@ -22,6 +22,7 @@ use near_sdk::{
     serde::{Deserialize, Serialize},
     Promise,
 };
+use uuid::Uuid;
 
 use std::{collections::HashMap, fmt::Display};
 
@@ -59,7 +60,7 @@ pub struct RiddleInput {
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Riddle {
-    id: u64,
+    id: String,
     difficulty: u64,
     creator: AccountId,
     bonus: Balance,
@@ -72,7 +73,7 @@ pub struct Riddle {
 #[derive(Default, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct RiddleGame {
-    riddles: HashMap<u64, Riddle>,
+    riddles: HashMap<String, Riddle>,
 }
 
 #[near_bindgen]
@@ -103,11 +104,10 @@ impl RiddleGame {
             .as_bytes(),
         );
 
-        // TODO: check overflow
-        let id = (self.riddles.len() + 1) as u64;
+        let id = Uuid::new_v4().to_string();
         let difficulty = 1_u64;
         let riddle = Riddle {
-            id,
+            id: id.clone(),
             difficulty,
             creator,
             input,
@@ -119,7 +119,7 @@ impl RiddleGame {
         Promise::new(env::current_account_id()).transfer(bonus);
     }
 
-    pub fn answer_riddle(&mut self, id: u64, sha256_answer: String) {
+    pub fn answer_riddle(&mut self, id: String, sha256_answer: String) {
         let answerer = env::signer_account_id();
         assert_eq!(
             answerer,
