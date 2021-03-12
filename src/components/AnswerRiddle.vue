@@ -14,8 +14,13 @@
       :focusable="isFocusable"
       :paginated="isPaginated"
       :per-page="perPage"
+      :row-class="(row, index) => selectedQuestionId == row.id && 'is-selected'"
       @select="onSelect"
     >
+      <b-table-column label="#" width="10" centered v-slot="props">
+        {{ props.row.id }}
+      </b-table-column>
+
       <b-table-column label="Creator" width="20" v-slot="props">
         {{ props.row.creator }}
       </b-table-column>
@@ -29,10 +34,10 @@
       </b-table-column>
 
       <b-table-column label="Bonus" width="20" v-slot="props">
-        {{ props.row.bonus }}
+        {{ +props.row.bonus }}
       </b-table-column>
 
-      <b-table-column label="Difficulty" width="20" v-slot="props">
+      <b-table-column label="Difficulty" width="10" v-slot="props">
         {{ props.row.grade }}
       </b-table-column>
 
@@ -40,6 +45,10 @@
         No Riddle
       </div>
     </b-table>
+
+    <b-field v-if="selectedQuestionId" label="You have picked:" class="has-text-centered">
+      <div>{{ selectedQuestionId }}</div>
+    </b-field>
 
     <b-field label="Answer">
       <b-input v-model="answer" placeholder="enter the answer"></b-input>
@@ -106,6 +115,8 @@ export default {
             sha256_answer: sha256(this.answer),
           },
         })
+
+        this.questionList = await window.contract.get_riddles()
       } catch (e) {
         window.alert(
           'Something went wrong! ' +
@@ -123,6 +134,9 @@ export default {
       if (row && row.id) {
         this.selectedQuestionId = row.id
       }
+    },
+    convertBonus(bonus) {
+      return +bonus / Math.pow(10, 24)
     },
   },
 
@@ -157,4 +171,9 @@ export default {
 }
 </script>
 
-<style type="text/css"></style>
+<style type="text/css">
+.b-table table.tr.active {
+  color: #fff;
+  background-color: blue;
+}
+</style>

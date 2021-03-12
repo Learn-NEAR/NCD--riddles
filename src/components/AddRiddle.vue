@@ -103,6 +103,8 @@ export default {
           new BN('30000000000000'),
           bonus
         )
+
+        window.alert('Successfully created riddle')
       } catch (e) {
         window.alert(
           'Something went wrong! ' +
