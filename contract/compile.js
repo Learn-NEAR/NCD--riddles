@@ -47,13 +47,13 @@ if (code === 0 && calledFromDir !== __dirname) {
     .toString()
     .match(/name = "([^"]+)"/)[1]
 
-  console.log(packageName)
   const outFile = `./target/wasm32-unknown-unknown/${
     debug ? 'debug' : 'release'
   }/${packageName}.wasm`
   sh.mkdir('-p', linkDir)
   sh.rm('-f', link)
-  const linkPath = path.relative(linkDir, outFile)
+  const linkPath = path.resolve(path.relative(linkDir, outFile))
+  console.log(linkPath + ' -> ' + link)
 
   sh.ln('-s', linkPath, link)
 }
