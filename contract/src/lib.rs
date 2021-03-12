@@ -154,6 +154,7 @@ impl RiddleGame {
         };
 
         self.riddles.insert(self.last_index, riddle);
+        // this._contract.buy_add_riddle({}, new BN("30000000000000"), requiredBalance);
         // TODO: check signer's banlance
         Promise::new(env::current_account_id()).transfer(bonus);
     }
