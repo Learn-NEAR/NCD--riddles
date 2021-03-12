@@ -42,7 +42,6 @@ impl Display for RiddleKind {
     }
 }
 
-#[near_bindgen]
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct RiddleInput {
@@ -51,7 +50,6 @@ pub struct RiddleInput {
     kind: RiddleKind,
 }
 
-#[near_bindgen]
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Riddle {
