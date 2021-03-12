@@ -34,7 +34,7 @@
       </b-table-column>
 
       <b-table-column label="Bonus" width="20" v-slot="props">
-        {{ +props.row.bonus }}
+        {{ convertBonus(props.row.bonus) }}
       </b-table-column>
 
       <b-table-column label="Difficulty" width="10" v-slot="props">
@@ -117,6 +117,7 @@ export default {
         })
 
         this.questionList = await window.contract.get_riddles()
+        this.answer = null
       } catch (e) {
         window.alert(
           'Something went wrong! ' +
