@@ -12,13 +12,16 @@
  */
 
 // To conserve gas, efficient serialization is achieved through Borsh (http://borsh.io/)
-use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::wee_alloc;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     AccountId, Balance,
 };
 use near_sdk::{env, near_bindgen};
+use near_sdk::{
+    serde::{Deserialize, Serialize},
+    Promise,
+};
 
 use std::{collections::HashMap, fmt::Display};
 
@@ -35,28 +38,27 @@ impl Display for RiddleKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             &RiddleKind::History => write!(f, "history"),
-            _ => unreachable!(),
         }
     }
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct RiddleInput {
     question: String,
     sha256_answer: String,
     kind: RiddleKind,
-    bonus: Balance,
 }
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
+#[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Riddle {
     id: u64,
     difficulty: u64,
     creator: AccountId,
+    bonus: Balance,
     input: RiddleInput,
 }
 
@@ -82,11 +84,17 @@ impl RiddleGame {
     #[payable]
     pub fn add_riddle(&mut self, input: RiddleInput) {
         let creator = env::signer_account_id();
+        assert_eq!(
+            creator,
+            env::predecessor_account_id(),
+            "predecessor account id must be the signer"
+        );
 
+        let bonus = env::attached_deposit();
         env::log(
             format!(
                 "{} just created a new riddle in the domain {} with a bonus at {}",
-                creator, input.kind, input.bonus
+                creator, input.kind, bonus
             )
             .as_bytes(),
         );
@@ -99,39 +107,53 @@ impl RiddleGame {
             difficulty,
             creator,
             input,
+            bonus,
         };
 
-        // TODO: transfer bonus from creator to contract
         self.riddles.insert(id, riddle);
+        // TODO: check signer's banlance
+        Promise::new(env::current_account_id()).transfer(bonus);
     }
 
-    pub fn answer_riddle(&mut self, id: u64, sha256_answer: String) -> bool {
-        let (is_correct, bonus) = match self.riddles.get_mut(&id) {
+    pub fn answer_riddle(&mut self, id: u64, sha256_answer: String) {
+        let answerer = env::signer_account_id();
+        assert_eq!(
+            answerer,
+            env::predecessor_account_id(),
+            "predecessor account id must be the answerer"
+        );
+        match self.riddles.get_mut(&id) {
             Some(riddle) if riddle.input.sha256_answer == sha256_answer => {
-                (true, riddle.input.bonus)
+                let bonus = riddle.bonus;
+
+                env::log(
+                    format!(
+                        "{} just answered riddle#{} correctly, he won the bonus at {}",
+                        answerer, id, bonus
+                    )
+                    .as_bytes(),
+                );
+
+                self.riddles.remove(&id);
+                Promise::new(answerer).transfer(1000);
             }
             Some(riddle) => {
                 riddle.difficulty += 1;
-                (false, Balance::from(0_u128))
             }
-            None => (false, Balance::from(0_u128)),
-        };
-
-        if is_correct {
-            let answerer = env::signer_account_id();
-            env::log(
-                format!(
-                    "{} just answered riddle#{} correctly, he won the bonus at {}",
-                    answerer, id, bonus
-                )
-                .as_bytes(),
-            );
-
-            self.riddles.remove(&id);
-            // TODO: pay bonus to answerer
+            None => {}
         }
+    }
 
-        is_correct
+    pub fn get_riddles(&self) -> Vec<Riddle> {
+        self.riddles.values().cloned().collect()
+    }
+
+    pub fn get_riddles_of_kind(&self, kind: &RiddleKind) -> Vec<Riddle> {
+        self.riddles
+            .values()
+            .filter(|r| &r.input.kind == kind)
+            .cloned()
+            .collect()
     }
 }
 
