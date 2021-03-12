@@ -1,4 +1,5 @@
-const CONTRACT_NAME = process.env.VUE_APP_CONTRACT_NAME || 'near-riddles'
+const CONTRACT_NAME =
+  process.env.VUE_APP_CONTRACT_NAME || 'dev-1615534169646-8512773'
 
 function getConfig(env) {
   switch (env) {
