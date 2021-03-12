@@ -1,7 +1,6 @@
 import { shallowMount } from '@vue/test-utils'
 import SignedOut from 'components/SignedOut.vue'
 
-
 describe('SignedOut.vue Test', () => {
   it('compose main page', () => {
     // render the component
@@ -11,7 +10,7 @@ describe('SignedOut.vue Test', () => {
     expect(wrapper.text()).toMatch('Welcome to NEAR')
 
     // check that the login button rendered
-    expect(wrapper.find('button').text()).toBe("Sign in")
-
+    expect(wrapper.find('button').text()).toBe('Sign in')
   })
 })
+
