@@ -1,5 +1,5 @@
 <template>
-  <p></p>
+  <p>add riddle</p>
 </template>
 
 <script>
