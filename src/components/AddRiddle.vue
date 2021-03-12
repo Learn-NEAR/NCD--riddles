@@ -42,6 +42,7 @@ export default {
       kindList: ['History', 'Science', 'Math', 'Other'],
       bonus: 1,
       bonusList: [0.5, 1, 2, 4, 8, 16],
+      loader: null,
     }
   },
   methods: {
@@ -52,6 +53,18 @@ export default {
       }
 
       try {
+        this.loader = this.$loading.show({
+          container: null,
+          width: 124,
+          height: 124,
+          loader: 'bars',
+          canCancel: false,
+          color: '#CDE201',
+          backgroundColor: '#000000',
+          opacity: 0.3,
+          zIndex: 1002,
+        })
+
         await window.contract.add_riddle({
           input: {
             question: this.question,
@@ -65,6 +78,11 @@ export default {
             'Maybe you need to sign out and back in? ' +
             'Check your browser console for more info.'
         )
+      } finally {
+        if (this.loader) {
+          this.loader.hide()
+          this.loader = null
+        }
       }
     },
   },

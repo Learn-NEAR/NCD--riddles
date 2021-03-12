@@ -1,11 +1,153 @@
 <template>
-  <p>answer riddle</p>
+  <div>
+    <h3>Answer Riddle</h3>
+    <br />
+
+    <b-table
+      :data="questionList"
+      :bordered="isBordered"
+      :striped="isStriped"
+      :narrowed="isNarrowed"
+      :hoverable="isHoverable"
+      :loading="isLoading"
+      :focusable="isFocusable"
+      :paginated="isPaginated"
+      :per-page="perPage"
+      @select="onSelect"
+    >
+      <b-table-column label="Creator" width="20" v-slot="props">
+        {{ props.row.creator }}
+      </b-table-column>
+
+      <b-table-column label="Question" width="20" v-slot="props">
+        {{ props.row.input.question }}
+      </b-table-column>
+
+      <b-table-column label="Kind" width="20" v-slot="props">
+        {{ props.row.input.kind }}
+      </b-table-column>
+
+      <b-table-column label="Bonus" width="20" v-slot="props">
+        {{ props.row.bonus }}
+      </b-table-column>
+
+      <b-table-column label="Difficulty" width="20" v-slot="props">
+        {{ props.row.difficulty }}
+      </b-table-column>
+    </b-table>
+
+    <b-field label="answer">
+      <b-input v-model="answer" placeholder="enter the answer"></b-input>
+    </b-field>
+
+    <br />
+
+    <b-field>
+      <b-button @click="answer_riddle">Submit</b-button>
+    </b-field>
+  </div>
 </template>
 
 <script>
+import sha256 from 'js-sha256'
+
 export default {
+  name: 'AnswerRiddle',
+  data() {
+    return {
+      isEmpty: false,
+      isBordered: false,
+      isStriped: false,
+      isNarrowed: false,
+      isHoverable: false,
+      isFocusable: false,
+      isPaginated: false,
+      perPage: 8,
+      isLoading: false,
+      selectedQuestionId: null,
+      questionList: [],
+      answer: null,
+      loader: null,
+    }
+  },
+  methods: {
+    answer_riddle: async function() {
+      if (!this.selectedQuestionId) {
+        window.alert("You haven't selected any question")
+        return
+      }
+
+      if (!this.answer) {
+        window.alert("You haven't filled the form'")
+        return
+      }
+
+      try {
+        this.loader = this.$loading.show({
+          container: null,
+          width: 124,
+          height: 124,
+          loader: 'bars',
+          canCancel: false,
+          color: '#CDE201',
+          backgroundColor: '#000000',
+          opacity: 0.3,
+          zIndex: 1002,
+        })
+
+        await window.contract.answer_riddle({
+          id: this.selectedQuestionId,
+          sha256_answer: sha256(this.answer),
+        })
+      } catch (e) {
+        window.alert(
+          'Something went wrong! ' +
+            'Maybe you need to sign out and back in? ' +
+            'Check your browser console for more info.'
+        )
+      } finally {
+        if (this.loader) {
+          this.loader.hide()
+          this.loader = null
+        }
+      }
+    },
+    onSelect(row) {
+      if (row && row.id) {
+        this.selectedQuestionId = row.id
+      }
+    },
+  },
+
+  mounted: async function() {
+    try {
+      this.loader = this.$loading.show({
+        container: null,
+        width: 124,
+        height: 124,
+        loader: 'bars',
+        canCancel: false,
+        color: '#CDE201',
+        backgroundColor: '#000000',
+        opacity: 0.3,
+        zIndex: 1002,
+      })
+
+      this.questionList = await window.contract.get_riddles()
+    } catch (e) {
+      window.alert(
+        'Something went wrong! ' +
+          'Maybe you need to sign out and back in? ' +
+          'Check your browser console for more info.'
+      )
+    } finally {
+      if (this.loader) {
+        this.loader.hide()
+        this.loader = null
+      }
+    }
+  },
 }
 </script>
 
-<style type="text/css">
-</style>
+<style type="text/css"></style>
