@@ -24,7 +24,6 @@ use near_sdk::{
 };
 
 use std::{collections::HashMap, fmt::Display};
-use uuid::Uuid;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -34,18 +33,17 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[serde(crate = "near_sdk::serde")]
 pub enum RiddleKind {
     History,
-    Kid,
+    Culture,
     Science,
     Math,
     Other,
 }
 
-
 impl Display for RiddleKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             &RiddleKind::History => write!(f, "history"),
-            &RiddleKind::Kid => write!(f, "kid"),
+            &RiddleKind::Culture => write!(f, "Culture"),
             &RiddleKind::Science => write!(f, "Science"),
             &RiddleKind::Math => write!(f, "Math"),
             &RiddleKind::Other => write!(f, "Other"),
@@ -58,7 +56,7 @@ impl Display for RiddleKind {
 #[serde(crate = "near_sdk::serde")]
 pub enum RiddleGrade {
     Easy,
-    Difficult,
+    Medium,
     Hard,
 }
 
@@ -66,7 +64,7 @@ impl Display for RiddleGrade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             &RiddleGrade::Easy => write!(f, "easy"),
-            &RiddleGrade::Difficult => write!(f, "difficult"),
+            &RiddleGrade::Medium => write!(f, "medium"),
             &RiddleGrade::Hard => write!(f, "hard"),
         }
     }
@@ -78,7 +76,6 @@ impl Display for RiddleGrade {
 pub struct RiddleInput {
     riddle: RiddleInfo,
     grade: RiddleGrade,
-    bonus: Balance,
 }
 
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
@@ -98,7 +95,6 @@ pub struct AnswerInfo {
     sha256_answer: String,
 }
 
-
 #[derive(Clone, BorshDeserialize, BorshSerialize, Serialize, Deserialize)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Riddle {
@@ -116,6 +112,7 @@ pub struct Riddle {
 #[serde(crate = "near_sdk::serde")]
 pub struct RiddleGame {
     riddles: HashMap<u128, Riddle>,
+    last_index: u128,
 }
 
 #[near_bindgen]
@@ -125,11 +122,12 @@ impl RiddleGame {
         assert!(!env::state_exists(), "The contract is already initialized");
         Self {
             riddles: HashMap::new(),
+            last_index: 1_u128,
         }
     }
 
     #[payable]
-    pub fn add_riddle(&mut self, input: &RiddleInput) {
+    pub fn add_riddle(&mut self, input: RiddleInput) {
         let creator = env::signer_account_id();
         assert_eq!(
             creator,
@@ -143,27 +141,24 @@ impl RiddleGame {
                 "{} just created a new riddle in the domain {} with a bonus at {}",
                 creator, input.riddle.kind, bonus
             )
-                .as_bytes(),
+            .as_bytes(),
         );
 
-
-        let uid = Uuid::new_v4().as_u128();
-
-        // TODO: check overflow
+        self.last_index += 1;
         let riddle = Riddle {
-            id: uid,
-            grade: input.to_owned().grade,
+            id: self.last_index,
+            grade: input.grade,
             creator,
-            bonus: input.to_owned().bonus,
-            riddle_info: input.to_owned().riddle,
+            bonus: bonus,
+            riddle_info: input.riddle,
         };
 
-        self.riddles.insert(uid, riddle);
+        self.riddles.insert(self.last_index, riddle);
         // TODO: check signer's banlance
         Promise::new(env::current_account_id()).transfer(bonus);
     }
 
-    pub fn answer_riddle(&mut self, answer: AnswerInfo) -> Option<Riddle>{
+    pub fn answer_riddle(&mut self, answer: AnswerInfo) -> Option<Riddle> {
         let answerer = env::signer_account_id();
         assert_eq!(
             answerer,
@@ -179,7 +174,7 @@ impl RiddleGame {
                         "{} just answered riddle#{} correctly, he won the bonus at {}",
                         answerer, answer.id, bonus
                     )
-                        .as_bytes(),
+                    .as_bytes(),
                 );
 
                 self.riddles.remove(&answer.id);

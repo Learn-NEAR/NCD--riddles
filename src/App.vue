@@ -33,8 +33,8 @@
         <br />
       </div>
       <div v-if="isSignedIn">
-        <AddRiddle v-show="isAddRiddleMode"></AddRiddle>
-        <AnswerRiddle v-show="!isAddRiddleMode"></AnswerRiddle>
+        <AddRiddle v-if="isAddRiddleMode"></AddRiddle>
+        <AnswerRiddle v-if="!isAddRiddleMode"></AnswerRiddle>
       </div>
     </main>
 
